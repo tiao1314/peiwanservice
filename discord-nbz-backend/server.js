@@ -16,7 +16,12 @@ app.use(cors({
     origin: 'http://localhost:3000', // Update with frontend URL
     credentials: true
 }));
-app.use(session({ secret: process.env.SESSION_SECRET, resave: false, saveUninitialized: false }));
+app.use(session({ 
+    secret: process.env.SESSION_SECRET, 
+    resave: false, 
+    saveUninitialized: false,
+    cookie: { secure: false } // Set secure to true if using HTTPS
+}));
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -43,15 +48,19 @@ app.get('/auth/discord', passport.authenticate('discord'));
 app.get('/auth/discord/callback', 
     passport.authenticate('discord', { failureRedirect: '/' }), 
     (req, res) => {
-        res.redirect('http://localhost:3000/dashboard'); // Update with frontend URL
+        res.redirect('http://localhost:3000/'); // Redirect to homepage instead of /dashboard
     }
 );
 
-app.get('/auth/logout', (req, res) => {
-    req.logout(() => {
+app.get('/auth/logout', (req, res, next) => {
+    req.session.destroy((err) => {
+        if (err) return next(err);
+        res.clearCookie('connect.sid'); // Clears session cookie
         res.redirect('/');
     });
 });
+
+
 
 app.get('/auth/user', (req, res) => {
     res.json(req.user || {});
