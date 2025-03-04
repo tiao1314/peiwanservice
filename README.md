@@ -1,48 +1,73 @@
-# Discord NBZ - OAuth2 Authentication Backend
+# Next.js Discord OAuth2 Authentication
 
-## Overview
-This project implements Discord OAuth2 authentication using Node.js and Express. Users can log in with their Discord accounts, and their profile information is retrieved.
+This project implements Discord OAuth2 authentication using **Next.js (Frontend)** and **Express.js (Backend)** with Passport.js.
 
-## Features Implemented
-- Discord OAuth2 authentication
-- Express.js backend with Passport.js
-- Session management using express-session
-- CORS enabled to allow frontend connections
-- API endpoint to fetch logged-in user data
+## 🚀 Features
+- **Discord Login** using OAuth2
+- **Session Management** with Express sessions
+- **User Info Display** (Avatar, Username, Email)
+- **Logout Functionality**
+- **Fully Responsive UI** with TailwindCSS
+- **CORS enabled** to allow frontend connections
+- **API endpoints** to fetch logged-in user data
 
-## Setup Instructions
+## 🛠️ Tech Stack
+- **Frontend:** Next.js 15, React, TypeScript, TailwindCSS
+- **Backend:** Express.js, Passport.js, Session-based Authentication
+- **Database (Optional):** SQLite / MongoDB (for future enhancements)
 
-### Prerequisites
-- Node.js installed (v14+ recommended)
-- A Discord Developer Application ([Create one here](https://discord.com/developers/applications))
+## 📂 Folder Structure
+```
+📦 peiwanservice
+ ┣ 📂 discord-nbz-backend (Backend)
+ ┃ ┣ 📜 server.js (Express server with Discord OAuth2)
+ ┃ ┣ 📜 .env (Environment variables)
+ ┃ ┣ 📜 package.json (Backend dependencies)
+ ┃ ┗ 📂 node_modules
+ ┃
+ ┣ 📂 discord-auth-frontend (Frontend)
+ ┃ ┣ 📂 src/app (Next.js App Router)
+ ┃ ┃ ┣ 📜 page.tsx (Login UI & User Display)
+ ┃ ┃ ┗ 📜 dashboard/page.tsx (Future Dashboard Page)
+ ┃ ┣ 📜 package.json (Frontend dependencies)
+ ┃ ┣ 📜 tailwind.config.js (Styling)
+ ┃ ┗ 📂 node_modules
+ ┃
+ ┣ 📜 README.md (This file)
+ ┗ 📜 LICENSE
+```
 
-### Installation
-1. Clone this repository:
-   ```sh
-   git clone https://github.com/your-repo/discord-nbz.git
-   cd discord-nbz
-   ```
-2. Install dependencies:
-   ```sh
-   npm install
-   ```
-3. Create a `.env` file in the root directory and add:
-   ```env
-   DISCORD_CLIENT_ID=your_client_id
-   DISCORD_CLIENT_SECRET=your_client_secret
-   DISCORD_REDIRECT_URI=http://localhost:5050/auth/discord/callback
-   SESSION_SECRET=your_random_secret
-   ```
-4. Start the server:
-   ```sh
-   node server.js
-   ```
-5. Open a browser and visit:
-   ```
-   http://localhost:5050/auth/discord
-   ```
+## 🏗️ Setup Guide
+### **1️⃣ Clone the Repository**
+```sh
+git clone https://github.com/tiao1314/peiwanservice.git
+cd peiwanservice
+```
 
-## API Endpoints
+### **2️⃣ Setup Backend**
+```sh
+cd discord-nbz-backend
+npm install
+cp .env.example .env  # Create and configure .env file
+node server.js  # Start backend
+```
+
+### **3️⃣ Setup Frontend**
+```sh
+cd ../discord-auth-frontend
+npm install
+npm run dev  # Start Next.js frontend
+```
+
+### **4️⃣ Environment Variables (`.env` for Backend)**
+```
+DISCORD_CLIENT_ID=your_client_id
+DISCORD_CLIENT_SECRET=your_client_secret
+DISCORD_REDIRECT_URI=http://localhost:5050/auth/discord/callback
+SESSION_SECRET=your_random_secret
+```
+
+## 📡 API Endpoints
 | Method | Endpoint               | Description          |
 |--------|------------------------|----------------------|
 | GET    | `/auth/discord`         | Initiates Discord login |
@@ -51,14 +76,8 @@ This project implements Discord OAuth2 authentication using Node.js and Express.
 | GET    | `/auth/user`            | Fetches logged-in user info |
 | GET    | `/debug/session`        | Displays session data |
 
-## Common Errors & Fixes
-
-### 1. **Invalid OAuth2 redirect_uri**
-**Error Message:**
-```
-Invalid OAuth2 redirect_uri
-```
-**Fix:**
+## 🔄 Common Issues & Fixes
+### ❌ **Invalid OAuth2 redirect_uri**
 - Ensure your `.env` file has the correct `DISCORD_REDIRECT_URI`:
   ```env
   DISCORD_REDIRECT_URI=http://localhost:5050/auth/discord/callback
@@ -69,12 +88,29 @@ Invalid OAuth2 redirect_uri
   node server.js
   ```
 
-### 2. **EADDRINUSE: Address Already in Use**
-**Error Message:**
+### ❌ **Logout Not Working?**
+- Ensure `/auth/logout` route in `server.js` is properly destroying the session:
+```js
+app.get('/auth/logout', (req, res, next) => {
+    req.session.destroy((err) => {
+        if (err) return next(err);
+        res.clearCookie('connect.sid'); // Clears session cookie
+        res.redirect('/');
+    });
+});
 ```
-Error: listen EADDRINUSE: address already in use :::5000
+
+### ❌ **AxiosError: 404 on Logout?**
+- Ensure the frontend makes the correct API request:
+```tsx
+const handleLogout = () => {
+    axios.get("http://localhost:5050/auth/logout", { withCredentials: true })
+        .then(() => setUser(null))
+        .catch(error => console.error("Logout error:", error));
+};
 ```
-**Fix:**
+
+### ❌ **EADDRINUSE: Address Already in Use**
 - Find the process using port 5000:
   ```sh
   sudo lsof -i :5000
@@ -87,33 +123,34 @@ Error: listen EADDRINUSE: address already in use :::5000
   ```sh
   node server.js
   ```
-- Alternatively, change the port in `server.js`:
-  ```javascript
-  const PORT = process.env.PORT || 5050;
-  ```
 
-### 3. **User Info Not Displaying After Login**
-**Fix:**
-- Ensure session is working properly by checking:
-  ```
-  http://localhost:5050/debug/session
-  ```
-- If empty, modify the session middleware in `server.js`:
-  ```javascript
-  app.use(session({
-      secret: process.env.SESSION_SECRET,
-      resave: false,
-      saveUninitialized: false,
-      cookie: { secure: false }
-  }));
-  ```
-- Restart the server.
+### ❌ **Invalid `src` for Discord Avatar?**
+- Allow `cdn.discordapp.com` in `next.config.js`:
+```js
+const nextConfig = {
+    images: {
+        remotePatterns: [{
+            protocol: 'https',
+            hostname: 'cdn.discordapp.com',
+            pathname: '/avatars/**',
+        }],
+    },
+};
+module.exports = nextConfig;
+```
 
-## Next Steps
-- Build a frontend in React (Next.js) to handle login/logout UI.
-- Store user data in a database (MongoDB or PostgreSQL).
-- Implement an admin panel to manage user roles.
+### ❌ **Git Pull Fails Due to Divergent Branches?**
+- Run one of these commands:
+```sh
+git pull --no-rebase  # Merge remote changes
+git pull --rebase     # Reapply local changes on top of remote
+git reset --hard origin/main  # (⚠️ Destroys local changes)
+```
+
+## 🚀 Future Improvements
+- ✅ **Dashboard Page** for user settings
+- ✅ **Database Integration** (SQLite or MongoDB)
+- ✅ **Role-based Access Control**
 
 ---
-**Author:** tiao | **Date:** March 4, 2025
-
+### **Made with ❤️ by Tiao** 🚀
