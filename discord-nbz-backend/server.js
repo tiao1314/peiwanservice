@@ -1,6 +1,3 @@
-// Install dependencies first: 
-// npm install express passport-discord dotenv cors cookie-session
-
 const express = require('express');
 const passport = require('passport');
 const DiscordStrategy = require('passport-discord').Strategy;
@@ -20,7 +17,7 @@ app.use(session({
     secret: process.env.SESSION_SECRET, 
     resave: false, 
     saveUninitialized: false,
-    cookie: { secure: false } // Set secure to true if using HTTPS
+    cookie: { secure: false, httpOnly: true, sameSite: 'lax' } // Improved security
 }));
 app.use(passport.initialize());
 app.use(passport.session());
@@ -45,27 +42,33 @@ passport.deserializeUser((obj, done) => {
 
 // Routes
 app.get('/auth/discord', passport.authenticate('discord'));
+
 app.get('/auth/discord/callback', 
     passport.authenticate('discord', { failureRedirect: '/' }), 
     (req, res) => {
-        res.redirect('http://localhost:3000/'); // Redirect to homepage instead of /dashboard
+        res.redirect('http://localhost:3000/');
     }
 );
 
 app.get('/auth/logout', (req, res, next) => {
-    req.session.destroy((err) => {
+    req.logout((err) => {
         if (err) return next(err);
-        res.clearCookie('connect.sid'); // Clears session cookie
-        res.redirect('/');
+        req.session.destroy((err) => {
+            if (err) return next(err);
+            res.clearCookie('connect.sid');
+            res.json({ message: 'Logged out successfully' });
+        });
     });
 });
 
-
-
 app.get('/auth/user', (req, res) => {
-    res.json(req.user || {});
+    if (req.isAuthenticated()) {
+        res.json(req.user);
+    } else {
+        res.status(401).json({ error: 'Unauthorized' });
+    }
 });
 
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`Server running on http://localhost:${PORT}`);
 });
